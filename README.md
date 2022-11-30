@@ -1,6 +1,4 @@
 # sRDMA
-A secure implementation of RDMA. This is the source code for our
-[USENIX ATC paper](https://spcl.inf.ethz.ch/Publications/.pdf/atc20-sRDMA-final108.pdf).
 
 ## Required hardware and software
  * Two SmartNICs running linux (e.g. Broadcom PS225).
