@@ -86,6 +86,7 @@ class SecureWorker : public GenericWorker {
         dmacon(dmacon),
         drkey(false) {
     {
+      //先划分一整块内存注册mr，再按照packetsize细分
       uint32_t allocate = niccon->max_recv_size *
                           (packetsize + HEADER_RESERVED + HEADER_RESERVED);
       char* buf = (char*)aligned_alloc(4096, allocate);
