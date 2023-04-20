@@ -212,6 +212,7 @@ class SecureWorker : public GenericWorker {
   ibv_kdf_ctx memkdf;
   unsigned char* pdmemkey;
   unsigned char* derived_mem_key;
+  //内存属性map,eth->rkey为索引
   std::unordered_map<uint32_t, mem_attribure_t> memlookup;
 
   // statistics
@@ -498,7 +499,7 @@ inline void SecureWorker::ProcessRecvRequest(struct ibv_wc* wc) {
     unsigned char* key = NULL;
     if (this->drkey && seccon != nullptr) {
       text(log_fp, "\t\t\t[DRKEY] not cached from qpn %u \n", qpn);
-//kdf
+    //根据qpn生成中间密钥
       kdf(this->kdfctx, (unsigned char*)&(qpn), sizeof(qpn), this->derived_key,
           seccon->secctx->key_length);
       key = this->derived_key;
@@ -512,9 +513,11 @@ inline void SecureWorker::ProcessRecvRequest(struct ibv_wc* wc) {
 
       // lookup region
       // region_t origreg = memlookup[wh->rkey];
+      //question:memlookup如何构造的，有什么含义
       auto got = memlookup.find(eth->rkey);
       if (got != memlookup.end()) {
         mem_attribure_t origreg = got->second;
+        //question:eth->addr - origreg.begin这部分是什么
         text(log_fp, "Memory key for %lu %u %u %u \n", origreg.begin,
              (uint32_t)(eth->addr - origreg.begin), eth->length,
              origreg.length);

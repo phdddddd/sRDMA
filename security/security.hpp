@@ -777,8 +777,7 @@ bool onreceive(ibv_secure_ctx *ctx, unsigned char *header, uint32_t headersize,
   return false;
 }
 
-ibv_kdf_ctx initkdf(ibv_kdf_type type, const unsigned char *masterkey,
-                    uint32_t key_length) {
+ibv_kdf_ctx initkdf(ibv_kdf_type type, const unsigned char *masterkey,uint32_t key_length) {
   if (key_length != KDFKEYSIZE) {
     info(log_fp, "Error! KDFKEYSIZE\n");
     return NULL;
@@ -806,6 +805,15 @@ ibv_kdf_ctx initkdf(ibv_kdf_type type, const unsigned char *masterkey,
   return NULL;
 }
 
+/**
+ * @description: 密钥分发函数
+ * @param {ibv_kdf_ctx} ctx 指向KDF上下文的指针，用于在派生过程中保存状态和计算中间值
+ * @param {unsigned char} *input 指向输入数据的指针，即要用于生成新密钥的原始数据。
+ * @param {uint32_t} inputsize 输入数据的字节数
+ * @param {unsigned char} *outputkey 指向派生密钥的指针，即生成的新密钥存储的地址。
+ * @param {uint32_t} outputsize 派生密钥的字节数
+ * @return {*}
+ */
 int kdf(ibv_kdf_ctx ctx, unsigned char *input, uint32_t inputsize,
         unsigned char *outputkey, uint32_t outputsize) {
   size_t len = 0;
@@ -820,6 +828,10 @@ int kdf(ibv_kdf_ctx ctx, unsigned char *input, uint32_t inputsize,
   return 0;
 }
 
+/**
+ * @description: 带初始密钥的密钥分发函数
+ * @return {*}
+ */
 inline int kdf_with_key(ibv_kdf_ctx ctx, unsigned char *inputkey,
                         uint32_t keysize, unsigned char *input,
                         uint32_t inputsize, unsigned char *outputkey,
@@ -835,7 +847,7 @@ inline int kdf_with_key(ibv_kdf_ctx ctx, unsigned char *inputkey,
   }
   return 0;
 }
-
+//mark:2023/4/20
 inline int calculate_memory_MAC(uint64_t regionstart, uint32_t offset,
                                 uint32_t length, uint32_t region_size,
                                 unsigned char *key_copy, ibv_kdf_ctx kdfctx) {
