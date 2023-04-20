@@ -198,13 +198,13 @@ class SecureWorker : public GenericWorker {
   Connection* dmacon;
 
   //   std::map<uint32_t, Connection*>  qpn_to_connection;
-
+//map管理secure_connections,qpn检索        
   std::map<uint32_t, secure_connection_t*> secure_connections;
 
   boost::object_pool<SecureReadWriteCtx> MemPoolSecCtx;
 
   unsigned char* tempbuf;
-  bool drkey;
+  bool drkey;  //question:drkey
   ibv_kdf_ctx kdfctx;
   unsigned char* master_key;
   unsigned char* derived_key;
@@ -215,7 +215,7 @@ class SecureWorker : public GenericWorker {
   std::unordered_map<uint32_t, mem_attribure_t> memlookup;
 
   // statistics
-  uint32_t pending_dma_req;
+  uint32_t pending_dma_req;//剩余的dma req
   uint32_t used_buffers;
   uint32_t pending_req;
   uint32_t max_pending_dma_req;
@@ -239,12 +239,15 @@ void SecureWorker::sometimes_cb() {
   //    printf("%u %u %u\n", pending_dma_req, used_buffers,pending_req );
 }
 
-// The following  method is responsible for polling RDMA receive
-// requests and processing them
+
+/**
+ * @description: polling nic connection's RDMA receive requests and processing them.But only one wc every time. 
+ * @return {*}
+ */
 inline void SecureWorker::PollRequest() {
   struct ibv_wc pool_wc[POLL_BATCH_SIZE];
 
-  uint32_t topoll = std::min(10 - this->pending_dma_req, 1U);
+  uint32_t topoll = std::min(10 - this->pending_dma_req, 1U); //每次处理一个req
   if (topoll) {
     int req = niccon->recv_check(&pool_wc[0], topoll);
 
@@ -454,34 +457,42 @@ inline void SecureWorker::ProcessSendRequest(struct ibv_wc* wc) {
   dmacon->post_recv(wc->wr_id, mr);
   return;
 }
-
+/**
+ * @description: 
+ * @param {ibv_wc*} wc
+ * @return {*}
+ */
 inline void SecureWorker::ProcessRecvRequest(struct ibv_wc* wc) {
   text(log_fp, "ProcessRecvRequest \n");
-
+  //前面处理时将mr指针作为wr_id
   struct ibv_mr* mr = (struct ibv_mr*)wc->wr_id;  // recv_buf
 
   if (wc->status == IBV_WC_SUCCESS && (wc->wc_flags & IBV_WC_WITH_IMM)) {
+    //request_type信息包含在imm_data中
     uint8_t request_type = (wc->imm_data & IBV_WRID_REQUEST_MASK);
-
+    //addr指向的内存前部分包含了transport_header_t 
+    //question:报文结构
     transport_header_t* h = (transport_header_t*)(char*)mr->addr;
-    // check secure header here
+    // check secure header here 检查flag
     bool withmemkey = (wc->imm_data & IBV_WR_SECURE_MEMORY);
+    //witheth是否包含交换信息
     bool witheth = (wc->imm_data & IBV_ETH);
 
     uint32_t qpn = h->qpn;
     text(log_fp, "\t\t\t[ProcessRecvRequest] for qpn %u %s req type %u\n", qpn,
          witheth ? "with eth" : "no eth", request_type);
-
+  //检索qp连接是否建立保护
     secure_connection_t* seccon = secure_connections[qpn];
 
     text(log_fp, "\tProtection is %s for qpn %u \n",
          seccon == NULL ? "not installed" : "installed", qpn);
-
+  //question:报文结构
     ext_transport_header_t* eth =
         (ext_transport_header_t*)((char*)mr->addr + sizeof(transport_header_t));
 
     uint32_t headersize = sizeof(transport_header_t) +
                           (witheth ? sizeof(ext_transport_header_t) : 0);
+    //question:macsize是什么东西
     uint32_t payloadoffset = headersize + h->macsize;
 
     unsigned char* key = NULL;
