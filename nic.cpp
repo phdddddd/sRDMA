@@ -146,7 +146,7 @@ int main(int argc, char *argv[]) {
     t->install_worker(secw);
     m->add_thread(t);
   }
-
+//test
   m->launch();
 
   delete m;
