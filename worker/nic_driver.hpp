@@ -498,7 +498,7 @@ inline void SecureWorker::ProcessRecvRequest(struct ibv_wc* wc) {
     unsigned char* key = NULL;
     if (this->drkey && seccon != nullptr) {
       text(log_fp, "\t\t\t[DRKEY] not cached from qpn %u \n", qpn);
-
+//kdf
       kdf(this->kdfctx, (unsigned char*)&(qpn), sizeof(qpn), this->derived_key,
           seccon->secctx->key_length);
       key = this->derived_key;
