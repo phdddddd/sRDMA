@@ -21,7 +21,7 @@ void printBytes(unsigned char *buf, uint32_t len) {
   text(log_fp, "\n");
 }
 
-// calcualtes next power of two.
+// calcualtes next power of two.求比x大的最小2的幂次方
 uint32_t next_pow2(uint32_t x) {
   x -= 1;
   x |= (x >> 1);
@@ -699,6 +699,7 @@ bool onreceive(ibv_secure_ctx *ctx, unsigned char *header, uint32_t headersize,
 
     HMAC_Final((HMAC_CTX *)ctx->ctx, tempbuf, &len);
     printBytes(tempbuf, len);
+    //question:header+headersize is the end of buffer,why can it store the MAC message?
     bool success = ((uint32_t)len == ctx->tagbytes) &&
                    (memcmp(tempbuf, header + headersize, len) == 0);
 #else
@@ -731,6 +732,7 @@ bool onreceive(ibv_secure_ctx *ctx, unsigned char *header, uint32_t headersize,
 
   } else if (ctx->type == crypto_type_t::CMAC) {
     /* Initialise nonce */
+    //AEAD认证加密模式
     EVP_DecryptInit_ex((EVP_CIPHER_CTX *)ctx->ctx, NULL, NULL, key,
                        (const unsigned char *)&(ctx->recvnonce));
     EVP_DecryptUpdate((EVP_CIPHER_CTX *)ctx->ctx, NULL, &intlen, header,
@@ -743,6 +745,7 @@ bool onreceive(ibv_secure_ctx *ctx, unsigned char *header, uint32_t headersize,
       EVP_DecryptUpdate((EVP_CIPHER_CTX *)ctx->ctx, NULL, &intlen, buf,
                         bufsize);
     }
+    //ctx->tagbytes:标签长度;header + headersize:认证消息的起始地址
     EVP_CIPHER_CTX_ctrl((EVP_CIPHER_CTX *)ctx->ctx, EVP_CTRL_AEAD_SET_TAG,
                         ctx->tagbytes, header + headersize);
     int rv = EVP_DecryptFinal_ex((EVP_CIPHER_CTX *)ctx->ctx, NULL, &intlen);
@@ -809,7 +812,7 @@ ibv_kdf_ctx initkdf(ibv_kdf_type type, const unsigned char *masterkey,uint32_t k
  * @description: 密钥分发函数
  * @param {ibv_kdf_ctx} ctx 指向KDF上下文的指针，用于在派生过程中保存状态和计算中间值
  * @param {unsigned char} *input 指向输入数据的指针，即要用于生成新密钥的原始数据。
- * @param {uint32_t} inputsize 输入数据的字节数
+ * @param {uint32_t} inputsize 输入数据的字节数      
  * @param {unsigned char} *outputkey 指向派生密钥的指针，即生成的新密钥存储的地址。
  * @param {uint32_t} outputsize 派生密钥的字节数
  * @return {*}
@@ -847,7 +850,16 @@ inline int kdf_with_key(ibv_kdf_ctx ctx, unsigned char *inputkey,
   }
   return 0;
 }
-//mark:2023/4/20
+/**
+ * @description: 通过不断地将内存区域一分为二，并将区域地址与中间点地址组合为哈希输入，不断更新加密密钥，最终生成 MAC
+ * @param {uint64_t} regionstart 内存区域的起始地址
+ * @param {uint32_t} offset 待计算 MAC 的内存区域的偏移量。
+ * @param {uint32_t} length 待计算 MAC 的内存区域的长度
+ * @param {uint32_t} region_size  内存区域的大小
+ * @param {unsigned char} *key_copy 加密密钥的副本
+ * @param {ibv_kdf_ctx} kdfctx 密钥派生函数上下文
+ * @return {*}
+ */
 inline int calculate_memory_MAC(uint64_t regionstart, uint32_t offset,
                                 uint32_t length, uint32_t region_size,
                                 unsigned char *key_copy, ibv_kdf_ctx kdfctx) {
@@ -864,7 +876,7 @@ inline int calculate_memory_MAC(uint64_t regionstart, uint32_t offset,
     half = half >> 1;
     uint32_t newmiddle = (offset >= middle)
                              ? middle + half
-                             : middle - half;  // calcualte new middle
+                             : middle - half;  // calcualte new middle 减法取代除法 （防溢出）
     text(log_fp, "%u %u (%" PRIu64 " : %" PRIu64 ") \n", middle, newmiddle,
          regionstart + middle, regionstart + newmiddle);
     tohash =

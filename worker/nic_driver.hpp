@@ -529,10 +529,11 @@ inline void SecureWorker::ProcessRecvRequest(struct ibv_wc* wc) {
         info(log_fp, "Unknown region \n");
       }
     }
-
+    //payloadoffset=headsize+macsize
     text(log_fp, "\t\t\t[ProcessRecvRequest] header %u payload %u \n",
          headersize, wc->byte_len - payloadoffset);
 
+//question:the struct of the mr is what?!!! behind the header(headsize),is it MAC?
     bool verified =
         (seccon == nullptr) ||
         onreceive(seccon->secctx, (unsigned char*)mr->addr, headersize,
