@@ -90,7 +90,7 @@ struct Connection {
   int get_event_fd() {
     assert(this->id->channel != NULL && "Channel is empty");
     int options = fcntl(this->id->channel->fd, F_GETFL, 0);
-
+  //为fd添加非阻塞文件状态
     if (fcntl(this->id->channel->fd, F_SETFL, options | O_NONBLOCK)) {
       perror("[RDMA_COM] cannot set server_client to non-blocking mode");
       exit(1);
@@ -100,9 +100,11 @@ struct Connection {
     return this->id->channel->fd;
   }
 
+
   struct ibv_mr *reg_mem(uint32_t size) {
     char *buf = (char *)aligned_alloc(4096, size);
     struct ibv_mr *mr =
+    //在pd中注册mr，并设置远端读写权限
         ibv_reg_mr(id->qp->pd, buf, size, IBV_ACCESS_REMOTE_WRITE |
                                               IBV_ACCESS_LOCAL_WRITE |
                                               IBV_ACCESS_REMOTE_READ);
@@ -115,6 +117,7 @@ struct Connection {
     return mr;
   }
 
+//根据参数重写函数，直接传入内存地址，将其注册为mr
   struct ibv_mr *reg_mem(void *buf, uint32_t size) {
     return ibv_reg_mr(id->qp->pd, buf, size, IBV_ACCESS_REMOTE_WRITE |
                                                  IBV_ACCESS_LOCAL_WRITE |
@@ -125,6 +128,7 @@ struct Connection {
   void dereg_mem(struct ibv_mr *mr, bool free_mem = false) {
     void *buf = mr->addr;
     ibv_dereg_mr(mr);
+    //注销mr不会释放对应的内存
     if (free_mem) {
       free(buf);
     }
@@ -138,21 +142,21 @@ struct Connection {
     sge.length = length;
     sge.lkey = lkey;
     struct ibv_send_wr wr, *bad;
-
+  
     wr.wr_id = 0;
-    wr.next = NULL;
-    wr.sg_list = &sge;
+    //TODO:目前见过的都是一个wr，wr中只有一个sge
+    wr.next = NULL;//wr也是一个链表
+    wr.sg_list = &sge; //每个wr只有1个sge，如果需要多次传输，是一次传输下发一次，还是综合下发一次，那么num_sge怎么计算
     wr.num_sge = 1;
     wr.opcode = IBV_WR_RDMA_WRITE;
     wr.send_flags = 0;
-
+  //inline将数据放在wqe的payload中，网卡获取后直接发送，不需要通过lkey去读取数据
     if (length <= max_inline_data && max_inline_data) {
       wr.send_flags |= IBV_SEND_INLINE;
     }
 
     wr.wr.rdma.remote_addr = to;
     wr.wr.rdma.rkey = rkey;
-
     return ibv_post_send(id->qp, &wr, &bad);
   }
 
@@ -170,7 +174,8 @@ struct Connection {
     wr.sg_list = &sge;
     wr.num_sge = 1;
     wr.opcode = IBV_WR_RDMA_WRITE;
-
+/*sg_list中指定的本地内存缓冲区的内容正在发送和写入远程 QP 虚拟空间中的连续内存范围块。
+这并不一定意味着远程内存在物理上是连续的。远程 QP 中不会消耗任何接收请求。*/
     wr.send_flags = IBV_SEND_SIGNALED;
 
     if (length <= max_inline_data && max_inline_data) {
@@ -188,9 +193,10 @@ struct Connection {
                                      uint32_t rkey, uint32_t length) {
     struct ibv_sge sge;
 
-    sge.addr = (uint64_t)(uintptr_t)from;
-    sge.length = length;
-    sge.lkey = lkey;
+    sge.addr = (uint64_t)(uintptr_t)from;//本地数据存储地址
+    sge.length = length;//数据长度
+    sge.lkey = lkey;//local key
+
     struct ibv_send_wr wr, *bad;
 
     wr.wr_id = wr_id;
@@ -198,6 +204,10 @@ struct Connection {
     wr.sg_list = &sge;
     wr.num_sge = 1;
     wr.opcode = IBV_WR_RDMA_WRITE_WITH_IMM;
+    /*
+IBV_WR_RDMA_WRITE_WITH_IMM - 与IBV_WR_RDMA_WRITE相同，
+但接收请求将从远程 QP 的接收队列的头部使用，即时数据将在消息中发送。此值将在为远程 QP 中消耗的接收请求生成的WC中可用
+*/
     wr.imm_data = imm_data;
 
     wr.send_flags = IBV_SEND_SIGNALED;
@@ -216,9 +226,9 @@ struct Connection {
                   uint32_t length) {
     struct ibv_sge sge;
 
-    sge.addr = (uint64_t)(uintptr_t)to;
-    sge.length = length;
-    sge.lkey = lkey;
+    sge.addr = (uint64_t)(uintptr_t)to;  //本数据存储地址
+    sge.length = length; //应该读取数据长度
+    sge.lkey = lkey; //local key
     struct ibv_send_wr wr, *bad;
 
     wr.wr_id = 0;
@@ -226,6 +236,8 @@ struct Connection {
     wr.sg_list = &sge;
     wr.num_sge = 1;
     wr.opcode = IBV_WR_RDMA_READ;
+    /*正在从远程 QP 虚拟空间中的连续内存范围块读取数据，
+    并将其写入 sg_list 中指定的本地内存缓冲区。远程 QP 中不会消耗任何接收请求。*/
     wr.send_flags = 0;
 
     wr.wr.rdma.remote_addr = (uint64_t)(uintptr_t)from;

@@ -92,13 +92,17 @@ int main(int argc, char *argv[]) {
 
   std::vector<Connection *> all_nic_connections;
 
+//根据指定的线程数目创建指定数目的连接
   for (uint32_t workerid = 0; workerid < numthreads;) {
     Connection *tempcon = NULL;
     if (server) {
+      //服务器等待连接
       tempcon = comnic->accept_connection(1, false);
     } else {
+      //客户端发起连接
       tempcon = comnic->get_connection(1);
     }
+    //连接成功后放入容器中管理
     if (tempcon != NULL) {
       all_nic_connections.push_back(tempcon);
       workerid++;
