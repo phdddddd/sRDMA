@@ -751,7 +751,7 @@ bool onreceive(ibv_secure_ctx *ctx, unsigned char *header, uint32_t headersize,
     int rv = EVP_DecryptFinal_ex((EVP_CIPHER_CTX *)ctx->ctx, NULL, &intlen);
 
     return rv > 0;
-
+  //question:这部分代码的ctx->type是什么？带了个bufsize
   } else {
     int rv = 0;
     /* Initialise nonce */

@@ -539,7 +539,7 @@ inline void SecureWorker::ProcessRecvRequest(struct ibv_wc* wc) {
         onreceive(seccon->secctx, (unsigned char*)mr->addr, headersize,
                   ((unsigned char*)mr->addr) + payloadoffset,
                   wc->byte_len - payloadoffset, tempbuf, key, memkey);
-
+  //question:request_type定义的是个什么东西？有什么作用[作者私设]
     if (verified) {
       if (request_type == IBV_WR_SECURE_SEND) {
         text(log_fp,
@@ -552,7 +552,7 @@ inline void SecureWorker::ProcessRecvRequest(struct ibv_wc* wc) {
           ret = seccon->recvcon->send_imm_signaled(
               (uint64_t)mr, IBV_WR_SECURE_SEND,
               ((char*)mr->addr) + payloadoffset, mr->lkey,
-              wc->byte_len - payloadoffset);
+              wc->byte_len - payloadoffset);  
         } while (ret == ENOMEM);
         return;
       }
