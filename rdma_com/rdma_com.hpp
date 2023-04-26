@@ -358,8 +358,10 @@ IBV_WR_RDMA_WRITE_WITH_IMM - 与IBV_WR_RDMA_WRITE相同，
     wr.sg_list = &sge;
     wr.num_sge = 1;
     wr.opcode = IBV_WR_SEND_WITH_IMM;
-
-    wr.send_flags = IBV_SEND_SIGNALED;
+/*为此 WR 设置完成通知指示符。  
+这意味着如果 QP 是用 sq_sig_all=0 创建的，那么当这个 WR 的处理结束时，将生成一个 Work Completion。  
+如果 QP 是使用 sq_sig_all=1 创建的，则此标志不会有任何影响*/
+    wr.send_flags = IBV_SEND_SIGNALED; //减少WC的产生和对WC的读取次数
 
     if (length <= max_inline_data && max_inline_data) {
       wr.send_flags |= IBV_SEND_INLINE;

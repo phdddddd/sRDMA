@@ -138,6 +138,7 @@ int main(int argc, char *argv[]) {
       params.reg_begin = (uint64_t)mr->addr;
 
       memcpy(params.memkey, mymemkey, KDFKEYSIZE);
+      //question:为什么要这么操作，有什么意义
       subregion_t subreg =
           grant_subregion((uint64_t)mr->addr, 0, size, (uint32_t)mr->length,
                           params.memkey, memkdf);
@@ -151,7 +152,7 @@ int main(int argc, char *argv[]) {
 
     text(log_fp, " Send memory region info  %lu %u  %u %u %u\n", params.remote,
          params.rkey, params.length, params.psn, params.qpn);
-
+//question:为什么这里用tcp进行参数交换
     params = server_exchange(18000 + workerid, &params);
 
     text(log_fp, " Received params %lu %u  %u %u %u\n", params.remote,

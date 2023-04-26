@@ -19,9 +19,9 @@ EOF
 
 # the setting is (host1 -- nic1) -- (nic2 -- host2)
 # the host1 is the current host
-nic1=192.198.1.10
-nic2=192.198.1.40
-host2=192.198.1.30
+nic1=192.168.212.146
+nic2=192.168.212.148
+host2=192.168.212.147
 
 #sleep 1
 usage () {
