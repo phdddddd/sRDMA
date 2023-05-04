@@ -11,6 +11,10 @@ class SequreQP {
   circular_buf_t circular_buf;  // it is not thread safe
 
  public:
+  /**
+   * @description: 发送memkey和pdkey
+   * @return {*}
+   */ 
   SequreQP(Connection* dma_con, const unsigned char* pdkey = NULL,
            const unsigned char* memkey = NULL, uint32_t cir_buf_size = 4096)
       : dma_con(dma_con) {
@@ -35,7 +39,10 @@ class SequreQP {
         (init_attribure_t*)((char*)h + sizeof(secure_attribure_header_t));
 
     s->drkey = pdkey != NULL;
-
+    /*  -------------------------   -----------------   
+      | secure_attribure_header_t | init_attribure_t |
+      h ------------------------- s ----------------- 
+     */
     if (pdkey != NULL) {
       memcpy(s->pdkey, pdkey, KDFKEYSIZE);
     }
@@ -46,7 +53,7 @@ class SequreQP {
       text(log_fp, "With memory protection \n");
       memcpy(s->memkey, memkey, KDFKEYSIZE);
     }
-
+//send secure_attribure_header_t and init_attribure_t
     this->dma_con->send_signaled(0, (char*)h, this->circular_buf.lkey(),
                                  length);
 

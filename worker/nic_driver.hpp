@@ -283,7 +283,9 @@ inline void SecureWorker::PollDMAControlRequest() {
     if (wc.wc_flags & IBV_WC_WITH_IMM) {
       text(log_fp, "\t\t\t[ProcessDMAControlRequest] with imm \n");
       ProcessSendRequest(&wc);
-    } else {
+    } 
+    //不带立即数
+    else {
       ProcessDMAControlRequest(&wc);
     }
   }
@@ -548,6 +550,7 @@ inline void SecureWorker::ProcessRecvRequest(struct ibv_wc* wc) {
              headersize, wc->byte_len - payloadoffset, seccon);
 
         int ret;
+        //question:为什么要发
         do {
           ret = seccon->recvcon->send_imm_signaled(
               (uint64_t)mr, IBV_WR_SECURE_SEND,
