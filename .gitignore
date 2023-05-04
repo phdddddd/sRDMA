@@ -1,0 +1,10 @@
+client
+client_bw_multi
+client_lat
+client_rw_bw
+client_tracer
+generate_rw_trace
+host
+memory_protection_bench
+nic
+parse_trace

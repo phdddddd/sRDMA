@@ -1,0 +1,68 @@
+Max send wr: 160 
+		Max recv wr: 320 
+		Max_inline_data: 0
+event 4
+		 Try to get connection request
+		 EP is connected
+[NIC] All  smartnic connections are installed
+		Max send wr: 160 
+		Max recv wr: 160 
+		Max_inline_data: 0
+event 4
+		 Try to get connection request
+		 EP is connected
+[NIC] All  DMA connections are installed
+	[LauncherMaster] start thread 0
+			[PollDMAControlRequest] Received a client request 94551731849808 
+			[ProcessDMAControlRequest] Create secure ctx
+mr addr 0x7f04ec50b080 
+			[ProcessDMAControlRequest] INIT qp
+			[PollDMAControlRequest] Received a client request 94551731849856 
+			[ProcessDMAControlRequest] Create secure ctx
+mr addr 0x7f04ec50b980 
+My qp 20, dest qp 17, remote psn 0  
+			[ProcessDMAControlRequest] Secure ctxn
+[SECURITY] : init context 
+[SECURITY] : Create HMAC ctx 
+Create IBV_HDR_HMAC_SHA1_160
+		[SecureWorker] new connection QPN 61 pushed with 54 
+			[PollDMAControlRequest] Received a client request 94551731849904 
+			[ProcessDMAControlRequest] Create secure ctx
+mr addr 0x7f04ec50c280 
+sendnonce 246 receivenonce: 1
+			[PollDMAControlRequest] Received a client request 94551731849952 
+			[ProcessDMAControlRequest] with imm 
+ProcessSendRequest 
+			[ProcessSendRequest] for qpn 62 
+IBV_WR_SECURE_WRITE 94551731849952 2561 2064 0x55fe8a628080 0x55fe8a63cae0
+			[Write] additional header is 44 
+Sign HMAC with nonce 248
+[Write] 139659121314660 2092 22977
+successful write 
+			[PollDMAControlRequest] Received a client request 94551731850000 
+			[ProcessDMAControlRequest] with imm 
+ProcessSendRequest 
+			[ProcessSendRequest] for qpn 62 
+IBV_WR_SECURE_WRITE 94551731850000 2561 2064 0x55fe8a628080 0x55fe8a63cb10
+			[Write] additional header is 44 
+Sign HMAC with nonce 250
+[Write] 139659121316964 2092 22977
+successful write 
+			[PollDMAControlRequest] Received a client request 94551731850048 
+			[ProcessDMAControlRequest] with imm 
+ProcessSendRequest 
+			[ProcessSendRequest] for qpn 62 
+IBV_WR_SECURE_WRITE 94551731850048 2561 2064 0x55fe8a628080 0x55fe8a63cb40
+			[Write] additional header is 44 
+Sign HMAC with nonce 252
+[Write] 139659121319268 2092 22977
+successful write 
+			[PollDMAControlRequest] Received a client request 94551731850096 
+			[ProcessDMAControlRequest] with imm 
+ProcessSendRequest 
+			[ProcessSendRequest] for qpn 62 
+IBV_WR_SECURE_WRITE 94551731850096 2561 2064 0x55fe8a628080 0x55fe8a63cb70
+			[Write] additional header is 44 
+Sign HMAC with nonce 254
+[Write] 139659121321572 2092 22977
+successful write
