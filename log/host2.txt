@@ -1,0 +1,11 @@
+	[RDMA_COM] New connection as a client to IP 192.168.212.148 at port 8888 
+		Max send wr: 2 
+		Max recv wr: 2 
+		Max_inline_data: 0
+ DMA connection is established
+Connection established.
+	[RDMA_COM] EP is created
+ Create DMA connection 
+ Send memory region info  94237912522752 11899  4096 0 17
+server exchange done
+ Received params 0 0  0 123 20

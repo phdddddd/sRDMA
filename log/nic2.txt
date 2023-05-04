@@ -1,0 +1,140 @@
+[RDMA_COM] New connection as a client to IP 192.168.212.146 at port 9999 
+		Max send wr: 160 
+		Max recv wr: 320 
+		Max_inline_data: 0
+Connection established.
+	[RDMA_COM] EP is created
+[NIC] All  smartnic connections are installed
+		Max send wr: 160 
+		Max recv wr: 160 
+		Max_inline_data: 0
+event 4
+		 Try to get connection request
+		 EP is connected
+[NIC] All  DMA connections are installed
+	[LauncherMaster] start thread 0
+			[PollDMAControlRequest] Received a client request 94609464088016 
+			[ProcessDMAControlRequest] Create secure ctx
+mr addr 0x7fbd63ffa080 
+			[ProcessDMAControlRequest] INIT qp
+			[PollDMAControlRequest] Received a client request 94609464088064 
+			[ProcessDMAControlRequest] Create secure ctx
+mr addr 0x7fbd63ffa980 
+My qp 17, dest qp 20, remote psn 123  
+			[ProcessDMAControlRequest] Secure ctxn
+[SECURITY] : init context 
+[SECURITY] : Create HMAC ctx 
+Create IBV_HDR_HMAC_SHA1_160
+		[SecureWorker] new connection QPN 54 pushed with 61 
+			[PollDMAControlRequest] Received a client request 94609464088112 
+			[ProcessDMAControlRequest] Create secure ctx
+mr addr 0x7fbd63ffb280 
+sendnonce 1 receivenonce: 246
+			[PollRequest] Received a client request
+ProcessRecvRequest 
+			[ProcessRecvRequest] for qpn 17 with eth req type 1
+	Protection is installed for qpn 17 
+			[ProcessRecvRequest] header 24 payload 2048 
+Check MAC onreceive
+Check HMAC on 248
+7c 1d e5 3e d4 1a 46 13 56 db 5c 1b 10 3f 39 fc 7c 59 0c ef 
+ Write from 140451403620524 20899 to 94237912522752 11899 
+			[PollRequest] Received a client request
+ProcessRecvRequest 
+			[ProcessRecvRequest] for qpn 17 with eth req type 1
+	Protection is installed for qpn 17 
+			[ProcessRecvRequest] header 24 payload 2048 
+Check MAC onreceive
+Check HMAC on 250
+26 1e f5 c2 c1 57 16 e1 3b 3e 77 36 80 c3 f5 17 b5 a2 1d 9e 
+ Write from 140451403622828 20899 to 94237912522752 11899 
+			[PollRequest] Received a client request
+ProcessRecvRequest 
+			[ProcessRecvRequest] for qpn 17 with eth req type 1
+	Protection is installed for qpn 17 
+			[ProcessRecvRequest] header 24 payload 2048 
+Check MAC onreceive
+Check HMAC on 252
+45 e6 4f 19 1a 82 82 5b 42 40 62 13 37 bf ce 4a ca fc c3 22 
+ Write from 140451403625132 20899 to 94237912522752 11899 
+			[PollRequest] Received a client request
+ProcessRecvRequest 
+			[ProcessRecvRequest] for qpn 17 with eth req type 1
+	Protection is installed for qpn 17 
+			[ProcessRecvRequest] header 24 payload 2048 
+Check MAC onreceive
+Check HMAC on 254
+ef 75 43 f4 d6 e5 ca af a5 f3 23 5a 68 fc e3 76 7e 5f 55 ba 
+ Write from 140451403627436 20899 to 94237912522752 11899 
+			[PollDMASendCompletion] 1
+			[PollDMASendCompletion] Received DMA Completion
+			[ProcessDMACompletion] post_recv
+			[PollRequest] Received a client request
+ProcessRecvRequest 
+			[ProcessRecvRequest] for qpn 17 with eth req type 1
+	Protection is installed for qpn 17 
+			[ProcessRecvRequest] header 24 payload 2048 
+Check MAC onreceive
+Check HMAC on 256
+71 1a 2e bc e3 d3 82 13 a2 03 a7 e2 ed 43 13 fd 35 02 14 5a 
+ Write from 140451403629740 20899 to 94237912522752 11899 
+			[PollDMASendCompletion] 1
+			[PollDMASendCompletion] Received DMA Completion
+			[ProcessDMACompletion] post_recv
+			[PollRequest] Received a client request
+ProcessRecvRequest 
+			[ProcessRecvRequest] for qpn 17 with eth req type 1
+	Protection is installed for qpn 17 
+			[ProcessRecvRequest] header 24 payload 2048 
+Check MAC onreceive
+Check HMAC on 258
+59 46 af 0e 49 7a b6 c3 53 65 5b 51 17 82 78 1d 50 d3 ae d4 
+ Write from 140451403632044 20899 to 94237912522752 11899 
+			[PollDMASendCompletion] 1
+			[PollDMASendCompletion] Received DMA Completion
+			[ProcessDMACompletion] post_recv
+			[PollRequest] Received a client request
+ProcessRecvRequest 
+			[ProcessRecvRequest] for qpn 17 with eth req type 1
+	Protection is installed for qpn 17 
+			[ProcessRecvRequest] header 24 payload 2048 
+Check MAC onreceive
+Check HMAC on 260
+11 07 3a 41 a9 d3 c2 64 ee c0 b7 6e bb 35 19 f7 6a 40 54 e1 
+ Write from 140451403634348 20899 to 94237912522752 11899 
+			[PollDMASendCompletion] 1
+			[PollDMASendCompletion] Received DMA Completion
+			[ProcessDMACompletion] post_recv
+			[PollRequest] Received a client request
+ProcessRecvRequest 
+			[ProcessRecvRequest] for qpn 17 with eth req type 1
+	Protection is installed for qpn 17 
+			[ProcessRecvRequest] header 24 payload 2048 
+Check MAC onreceive
+Check HMAC on 262
+c0 28 39 68 58 77 e1 40 a5 1d 14 40 64 9b 00 5d e0 e9 2f 5d 
+ Write from 140451403636652 20899 to 94237912522752 11899 
+			[PollDMASendCompletion] 1
+			[PollDMASendCompletion] Received DMA Completion
+			[ProcessDMACompletion] post_recv
+			[PollRequest] Received a client request
+ProcessRecvRequest 
+			[ProcessRecvRequest] for qpn 17 with eth req type 1
+	Protection is installed for qpn 17 
+			[ProcessRecvRequest] header 24 payload 2048 
+Check MAC onreceive
+Check HMAC on 264
+f4 4d 8b 43 b4 8b a0 eb 27 42 85 9c de 3d 02 0c 91 49 ca 32 
+ Write from 140451403638956 20899 to 94237912522752 11899 
+			[PollDMASendCompletion] 1
+			[PollDMASendCompletion] Received DMA Completion
+			[ProcessDMACompletion] post_recv
+			[PollRequest] Received a client request
+ProcessRecvRequest 
+			[ProcessRecvRequest] for qpn 17 with eth req type 1
+	Protection is installed for qpn 17 
+			[ProcessRecvRequest] header 24 payload 2048 
+Check MAC onreceive
+Check HMAC on 266
+04 b7 76 f2 f9 92 1e 86 de 1b 8b 2c 16 3d 80 43 4e 80 bc 54 
+ Write from 140451403641260 20899 to 94237912522752 11899
