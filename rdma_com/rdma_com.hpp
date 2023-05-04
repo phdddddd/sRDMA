@@ -659,16 +659,17 @@ class RDMA_COM {
     struct rdma_addrinfo hints;
     memset(&hints, 0, sizeof(hints));
 
-    hints.ai_port_space = RDMA_PS_TCP;
-    hints.ai_family = AF_INET;
+    hints.ai_port_space = RDMA_PS_TCP;//指示正在使用的 RDMA 端口空间
+    //对于 RDMA_PS_TCP 类型的 rdma_cm_id，rdma_connect会发起到远程目标的连接请求。
+    hints.ai_family = AF_INET; //指定源和目标的地址族 地址
 
     if (_server) {
-      hints.ai_flags = RAI_PASSIVE;
+      hints.ai_flags = RAI_PASSIVE;//表示使用结果 在连接的被动或监听端
     }
 
     char strport[7] = "";
     sprintf(strport, "%d", _port);
-
+    //函数 rdma_getaddrinfo _ 解析目的节点和服务地址并返回信息 这是建立通信所必需的。 该功能提供 RDMA 功能等同于 getaddrinfo. 
     int rc = rdma_getaddrinfo(const_cast<char *>(_serverip), strport, &hints,
                               &_addrinfo);
 
@@ -678,18 +679,19 @@ class RDMA_COM {
     }
 
     if (_server) {
+      //绑定出cm_channel 到 cm_id
       rc = rdma_create_id(this->cm_channel, &listen_id, NULL, RDMA_PS_TCP);
       if (rc) {
         perror("Failed to create RDMA CM server control ID.");
         exit(1);
       }
-
+//rdma_bind_addr 函数将源地址与 rdma_cm_id 标识符相关联.如果 rdma_cm_id 标识符具有本地地址，则该标识符也具有本地 RDMA 设备
       rc = rdma_bind_addr(listen_id, _addrinfo->ai_src_addr);
       if (rc) {
         perror("Failed to bind RDMA CM address on the server.");
         exit(1);
       }
-
+//rdma_listen函数为传入的连接请求发起侦听操作。监听操作仅限于本地绑定的源地址。
       rc = rdma_listen(listen_id, 2);
       if (rc) {
         perror("rdma_listen");
@@ -977,6 +979,7 @@ class RDMA_COM {
 
     int notconnected = 1;
     while (notconnected && retry >= 0) {
+      //question:event是怎么来的，怎么到cm_channel中的
       if (rdma_get_cm_event(cm_channel, &event)) {
         perror("rdma_get_cm_events failed\n");
         // exit(1);
