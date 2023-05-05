@@ -927,6 +927,7 @@ class RDMA_COM {
       assert(event->id == cm_id && "Unexpected completion event");
 
       if (event->event == RDMA_CM_EVENT_ADDR_RESOLVED) {
+        //rdma_resolve_route 函数将 RDMA 路由解析到目标地址以建立连接。  必须通过运行 rdma_resolve_addr 子例程来解析目标地址。
         rc = rdma_resolve_route(cm_id, 2000);
         if (rc) {
           perror("rdma_resolve_route failed\n");
