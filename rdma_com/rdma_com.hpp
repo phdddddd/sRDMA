@@ -834,7 +834,7 @@ class RDMA_COM {
     struct ibv_srq *srq = NULL;
     struct ibv_comp_channel *receive_channel = NULL;
     struct ibv_comp_channel *send_channel = NULL;
-
+//question:使用共享的receive_channel,如何初始化的
     if (with_shared_receive_completion) {
       rcq = this->rcq;
       receive_channel = this->receive_channel;
@@ -865,7 +865,7 @@ class RDMA_COM {
                             0);
       }
     }
-
+//共享rcq，即srq
     if (with_shared_receive) {
       srq = this->srq;
     }
@@ -907,6 +907,7 @@ class RDMA_COM {
       perror("rdma_create_id failed\n");
       exit(1);
     }
+//rdma_resolve_addr 函数将目标地址和可选源地址从 IP 地址解析为RDMA地址。  如果成功，则指定的 rdma_cm_id 标识符与本地设备相关联。
 
     int rc = rdma_resolve_addr(cm_id, _addrinfo->ai_src_addr,
                                _addrinfo->ai_dst_addr, 2000);
@@ -922,8 +923,8 @@ class RDMA_COM {
         perror("rdma_get_cm_events failed\n");
         exit(1);
       }
-
-      assert(event->id == cm_id && "Unexpected comletion event");
+//assert判断是不是event关联的cm_id
+      assert(event->id == cm_id && "Unexpected completion event");
 
       if (event->event == RDMA_CM_EVENT_ADDR_RESOLVED) {
         rc = rdma_resolve_route(cm_id, 2000);
@@ -989,7 +990,7 @@ class RDMA_COM {
       }
 
       text(log_fp, "event %u\n", event->event);
-
+//指定与事件关联的rdma_cm标识符。如果 RDMA_CM_EVENT_CONNECT_REQUEST 是事件类型，则函数会引用一个新 ID 进行通信。
       if (event->event == RDMA_CM_EVENT_CONNECT_REQUEST) {
         cm_id = event->id;
 
@@ -1001,12 +1002,16 @@ class RDMA_COM {
 
         struct rdma_conn_param conn_param;
         memset(&conn_param, 0, sizeof(conn_param));
-
+//指定本地端从远程端接受的未完成远程直接内存访问 (RDMA) 读取操作的最大数量.此属性仅适用于RDMA_PS_TCP事件
         conn_param.responder_resources = this->_rdma_read_target;
+//指定本地端必须读取到远程端的最大未完成 RDMA 读取操作数。此属性仅适用于RDMA_PS_TCP事件
         conn_param.initiator_depth = this->_rdma_read_init;
         conn_param.retry_count = 3;      // TODO
+//指定在收到接收方未就绪 （RNR） 错误后，在连接上尝试来自远程对等方的发送操作的最大次数。
         conn_param.rnr_retry_count = 3;  // TODO
-
+//rdma_accept 函数用于接受连接查找请求
+/*     rdma_accept 操作不会在侦听的 rdma_cm_id 标识符上调用。  rdma_listen 操作运行后，您必须等待连接请求事件发生。
+     rdma_cm_id 标识符是由类似于新套接字的连接请求事件创建的，但 rdma_cm_id 标识符与特定的 RDMA 设备相关联。  在新的 rdma_cm_id 标识符上调用 rdma_accept 操作。*/
         rc = rdma_accept(cm_id, &conn_param);
         if (rc) {
           perror("rdma_accept failed\n");
