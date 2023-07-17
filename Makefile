@@ -28,7 +28,7 @@ endif
 
 
 
-LDFLAGS =  -libverbs -lrdmacm -lpthread -lev -ldl  -L$(opensslpath)/lib/ -lcrypto  -Wl,-rpath=$(opensslpath)/lib/
+LDFLAGS =  -libverbs -lrdmacm -lpthread -lev -ldl  -L$(opensslpath)lib/ -lcrypto  -Wl,-rpath=$(opensslpath)lib/
 CFLAGS += -Wall -std=c++11 -I./ -I$(opensslpath)/include/ #-g -D_GNU_SOURCE
 
 all: CFLAGS += -O2

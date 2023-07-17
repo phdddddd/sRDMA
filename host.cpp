@@ -46,7 +46,7 @@ cxxopts::ParseResult parse(int argc, char *argv[]) {
         ("size", "Buffer size per thread",cxxopts::value<uint32_t>()->default_value(std::to_string(4096)),"N")
         ("memkey", "Use key derivation for memory sub delegation",cxxopts::value<bool>()->default_value("false"))
         ("o,output", "Output file", cxxopts::value<std::string>(), "FILE")
-        ("help", "Print help");
+        ("help", "Print help"); 
 
     auto result = options.parse(argc, argv);
 
@@ -60,7 +60,7 @@ cxxopts::ParseResult parse(int argc, char *argv[]) {
     }
 
     return result;
-
+ 
   } catch (const cxxopts::OptionException &e) {
     std::cout << "error parsing options: " << e.what() << std::endl;
     std::cout << options.help({""}) << std::endl;
