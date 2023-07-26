@@ -19,9 +19,12 @@ EOF
 
 # the setting is (host1 -- nic1) -- (nic2 -- host2)
 # the host1 is the current host
-nic1=192.168.212.146
-nic2=192.168.212.148
-host2=192.168.212.147
+# nic1=192.168.212.146
+# nic2=192.168.212.148
+# host2=192.168.212.147
+nic1=192.168.101.132
+nic2=192.168.101.133
+host2=192.168.101.134
 
 #sleep 1
 usage () {
@@ -72,7 +75,7 @@ Start() {
 Stop() {
     for k in "${!pids[@]}"
     do
-        cmd=( "ssh" "$USER@$k" "kill -s 9" "${pids[$k]}" )
+        cmd=( "ssh" "$USER@$k" "kill -9" "${pids[$k]}" )
         echo "Executing: ${cmd[@]}"
         $("${cmd[@]}")
     done

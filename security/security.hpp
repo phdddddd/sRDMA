@@ -779,14 +779,17 @@ bool onreceive(ibv_secure_ctx *ctx, unsigned char *header, uint32_t headersize,
   }
   return false;
 }
-
+/**
+ * @description: 在未指定masterkey时生成masterkey
+ * @return {*}
+ */
 ibv_kdf_ctx initkdf(ibv_kdf_type type, const unsigned char *masterkey,uint32_t key_length) {
   if (key_length != KDFKEYSIZE) {
     info(log_fp, "Error! KDFKEYSIZE\n");
     return NULL;
   }
   if (type == ibv_kdf_type::KDF_CMAC_AES_128) {
-    bool dummy_key = false;
+    bool dummy_key = false;//未指定masterkey，生成的虚拟密钥
     CMAC_CTX *cmacctx = CMAC_CTX_new();
     if (masterkey == NULL) {
       text(log_fp, "Install dummykey \n");
