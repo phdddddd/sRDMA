@@ -408,7 +408,8 @@ IBV_WR_RDMA_WRITE_WITH_IMM - 与IBV_WR_RDMA_WRITE相同，
     return ret;
   }
 
-  inline int recv_check(struct ibv_wc *wc, int num = 1) {
+  inline int 
+  recv_check(struct ibv_wc *wc, int num = 1) {
     int ret = ibv_poll_cq(id->qp->recv_cq, num, wc);
     ;
 
@@ -1130,3 +1131,414 @@ class RDMA_COM {
 
 struct ibv_pd *RDMA_COM::pd = NULL;
 struct ibv_context *RDMA_COM::ctxt = NULL;
+
+
+struct UDConnection {
+  struct rdma_cm_id *id;
+  const uint32_t max_inline_data;
+  const uint32_t max_recv_size;
+  const uint32_t max_send_size;
+  const bool with_shared_receive;
+  uint32_t target_qp_num;
+
+
+UDconnection(struct rdma_cm_id *id, uint32_t max_inline_data,
+             uint32_t max_recv_size, uint32_t max_send_size,
+             bool with_shared_receive = false): id(id),
+        max_inline_data(max_inline_data),
+        max_recv_size(max_recv_size),
+        max_send_size(max_send_size),
+        with_shared_receive(with_shared_receive) {}
+
+int get_cm_event(struct rdma_event_channel *channel,
+                 enum rdma_cm_event_type type,
+                 struct rdma_cm_event **out_ev)
+{
+    int ret = 0;
+    struct rdma_cm_event *event = NULL;
+    ret = rdma_get_cm_event(channel, &event);
+    if (ret)
+    {
+        VERB_ERR("rdma_resolve_addr", ret);
+        return -1;
+    }
+    /* Verify the event is the expected type */
+    if (event->event != type)
+    {
+        printf("event: %s, status: %d\n",
+               rdma_event_str(event->event), event->status);
+        ret = -1;
+    }
+    /* Pass the event back to the user if requested */
+    if (!out_ev)
+        rdma_ack_cm_event(event);
+    else
+        *out_ev = event;
+    return ret;
+}
+
+int resolve_addr(struct context *ctx)
+{
+    int ret;
+    struct rdma_addrinfo *bind_rai = NULL;
+    struct rdma_addrinfo *mcast_rai = NULL;
+    struct rdma_addrinfo hints;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_port_space = RDMA_PS_UDP;
+    if (ctx->bind_addr)
+    {
+        hints.ai_flags = RAI_PASSIVE;
+        ret = rdma_getaddrinfo(ctx->bind_addr, NULL, &hints, &bind_rai);
+        if (ret)
+        {
+            VERB_ERR("rdma_getaddrinfo (bind)", ret);
+            return ret;
+        }
+    }
+    hints.ai_flags = 0;
+    ret = rdma_getaddrinfo(ctx->mcast_addr, NULL, &hints, &mcast_rai);
+    if (ret)
+    {
+        VERB_ERR("rdma_getaddrinfo (mcast)", ret);
+        return ret;
+    }
+    if (ctx->bind_addr)
+    {
+        /* bind to a specific adapter if requested to do so */
+        ret = rdma_bind_addr(ctx->id, bind_rai->ai_src_addr);
+        if (ret)
+        {
+            VERB_ERR("rdma_bind_addr", ret);
+            return ret;
+        }
+        /* A PD is created when we bind. Copy it to the context so it can
+         * be used later on */
+        ctx->pd = ctx->id->pd;
+    }
+    ret = rdma_resolve_addr(ctx->id, (bind_rai) ? bind_rai->ai_src_addr : NULL,
+                            mcast_rai->ai_dst_addr, 2000);
+    if (ret)
+    {
+        VERB_ERR("rdma_resolve_addr", ret);
+        return ret;
+    }
+    ret = get_cm_event(ctx->channel, RDMA_CM_EVENT_ADDR_RESOLVED, NULL);
+    if (ret)
+    {
+        return ret;
+    }
+    memcpy(&ctx->mcast_sockaddr,
+           mcast_rai->ai_dst_addr,
+           sizeof(struct sockaddr));
+    return 0;
+}
+
+int create_resources(struct context *ctx)
+{
+    int ret, buf_size;
+    struct ibv_qp_init_attr attr;
+    memset(&attr, 0, sizeof(attr));
+    /* If we are bound to an address, then a PD was already allocated
+     * to the CM ID */
+    if (!ctx->pd)
+    {
+        ctx->pd = ibv_alloc_pd(ctx->id->verbs);
+        if (!ctx->pd)
+        {
+            VERB_ERR("ibv_alloc_pd", -1);
+            return ret;
+        }
+    }
+    ctx->cq = ibv_create_cq(ctx->id->verbs, 2, 0, 0, 0);
+    if (!ctx->cq)
+    {
+        VERB_ERR("ibv_create_cq", -1);
+        return ret;
+    }
+    attr.qp_type = IBV_QPT_UD;
+    attr.send_cq = ctx->cq;
+    attr.recv_cq = ctx->cq;
+    attr.cap.max_send_wr = ctx->msg_count;
+    attr.cap.max_recv_wr = ctx->msg_count;
+    attr.cap.max_send_sge = 1;
+    attr.cap.max_recv_sge = 1;
+    ret = rdma_create_qp(ctx->id, ctx->pd, &attr);
+    if (ret)
+    {
+        VERB_ERR("rdma_create_qp", ret);
+        return ret;
+    }
+    /* The receiver must allow enough space in the receive buffer for
+     * the GRH */
+    buf_size = ctx->msg_length + (ctx->sender ? 0 : sizeof(struct ibv_grh));
+    ctx->buf = calloc(1, buf_size);
+    memset(ctx->buf, 0x00, buf_size);
+    /* Register our memory region */
+    ctx->mr = rdma_reg_msgs(ctx->id, ctx->buf, buf_size);
+    if (!ctx->mr)
+    {
+        VERB_ERR("rdma_reg_msgs", -1);
+        return -1;
+    }
+    return 0;
+}
+void destroy_resources(struct context *ctx)
+{
+    if (ctx->ah)
+        ibv_destroy_ah(ctx->ah);
+    if (ctx->id->qp)
+        rdma_destroy_qp(ctx->id);
+    if (ctx->cq)
+        ibv_destroy_cq(ctx->cq);
+    if (ctx->mr)
+        rdma_dereg_mr(ctx->mr);
+    if (ctx->buf)
+        free(ctx->buf);
+    if (ctx->pd && ctx->id->pd == NULL)
+        ibv_dealloc_pd(ctx->pd);
+    rdma_destroy_id(ctx->id);
+}
+
+int post_send(struct context *ctx)
+{
+    int ret;
+    struct ibv_send_wr wr, *bad_wr;
+    struct ibv_sge sge;
+    
+   // memset(ctx->buf, 0x12, ctx->msg_length); /* set the data to non-zero */
+    sge.length = ctx->msg_length;
+    sge.lkey = ctx->mr->lkey;
+    sge.addr = (uint64_t)ctx->buf;
+    /* Multicast requires that the message is sent with immediate data
+     * and that the QP number is the contents of the immediate data */
+    wr.next = NULL;
+    wr.sg_list = &sge;
+    wr.num_sge = 1;
+    wr.opcode = IBV_WR_SEND_WITH_IMM;
+    wr.send_flags = IBV_SEND_SIGNALED;
+    wr.wr_id = 0;
+    wr.imm_data = htonl(ctx->id->qp->qp_num);
+    wr.wr.ud.ah = ctx->ah;
+    wr.wr.ud.remote_qpn = ctx->remote_qpn;
+    wr.wr.ud.remote_qkey = ctx->remote_qkey;
+    ret = ibv_post_send(ctx->id->qp, &wr, &bad_wr);
+    if (ret)
+    {
+        VERB_ERR("ibv_post_send", ret);
+        return -1;
+    }
+    return 0;
+}
+
+int get_completion(struct context *ctx)
+{
+    int ret;
+    struct ibv_wc wc;
+    do
+    {
+        ret = ibv_poll_cq(ctx->cq, 1, &wc);
+        if (ret < 0)
+        {
+            VERB_ERR("ibv_poll_cq", ret);
+            return -1;
+        }
+    } while (ret == 0);
+    if (wc.status != IBV_WC_SUCCESS)
+    {
+        printf("work completion status %s\n",
+               ibv_wc_status_str(wc.status));
+        return -1;
+    }
+    return 0;
+}
+}
+
+struct UDConnection :struct Connection{
+    UDConnection(struct rdma_cm_id *id, uint32_t max_inline_data,
+             uint32_t max_recv_size, uint32_t max_send_size,
+             bool with_shared_receive = false)
+      : id(id),
+        max_inline_data(max_inline_data),
+        max_recv_size(max_recv_size),
+        max_send_size(max_send_size),
+        with_shared_receive(with_shared_receive) {}
+
+    ~Connection() {
+    if (id) {
+      if (with_shared_receive) {
+        id->recv_cq_channel = NULL;
+      }
+      rdma_disconnect(this->id);
+      rdma_destroy_ep(this->id);
+      this->id = NULL;
+    }
+  }
+
+  bool check_status() {
+    int ret;
+    struct rdma_cm_event *event;
+
+    ret = rdma_get_cm_event(id->channel, &event);
+    if (ret) {
+      perror("rdma_get_cm_event");
+      exit(ret);
+    }
+    switch (event->event) {
+      case RDMA_CM_EVENT_ADDR_ERROR:
+      case RDMA_CM_EVENT_ROUTE_ERROR:
+      case RDMA_CM_EVENT_CONNECT_ERROR:
+      case RDMA_CM_EVENT_UNREACHABLE:
+      case RDMA_CM_EVENT_REJECTED:
+
+        text(log_fp, "[rdma_get_cm_event] Error %u \n", event->event);
+        break;
+
+      case RDMA_CM_EVENT_DISCONNECTED:
+        text(log_fp, "[rdma_get_cm_event] Disconnect %u \n", event->event);
+        break;
+
+      case RDMA_CM_EVENT_DEVICE_REMOVAL:
+        text(log_fp, "[rdma_get_cm_event] Removal %u \n", event->event);
+        break;
+      default:
+        text(log_fp, "[rdma_get_cm_event] Unknown %u \n", event->event);
+    }
+    rdma_ack_cm_event(event);
+    return false;
+  }
+
+   inline int write(char *from, uint32_t lkey, uint64_t to, uint32_t rkey,
+                   uint32_t length) {
+    struct ibv_sge sge;
+
+    sge.addr = (uint64_t)(uintptr_t)from;
+    sge.length = length;
+    sge.lkey = lkey;
+    struct ibv_send_wr wr, *bad;
+  
+    wr.wr_id = 0;
+    //TODO:目前见过的都是一个wr，wr中只有一个sge
+    wr.next = NULL;//wr也是一个链表
+    wr.sg_list = &sge; //每个wr只有1个sge，如果需要多次传输，是一次传输下发一次，还是综合下发一次，那么num_sge怎么计算
+    wr.num_sge = 1;
+    wr.opcode = IBV_WR_RDMA_WRITE;
+    wr.send_flags = 0;
+  //inline将数据放在wqe的payload中，网卡获取后直接发送，不需要通过lkey去读取数据
+    if (length <= max_inline_data && max_inline_data) {
+      wr.send_flags |= IBV_SEND_INLINE;
+    }
+
+    wr.wr.rdma.remote_addr = to;
+    wr.wr.rdma.rkey = rkey;
+    return ibv_post_send(id->qp, &wr, &bad);
+  }
+
+inline int write_signaled(uint64_t wr_id, char *from, uint32_t lkey,
+                            uint64_t to, uint32_t rkey, uint32_t length) {
+    struct ibv_sge sge;
+
+    sge.addr = (uint64_t)(uintptr_t)from;
+    sge.length = length;
+    sge.lkey = lkey;
+    struct ibv_send_wr wr, *bad;
+
+    wr.wr_id = wr_id;
+    wr.next = NULL;
+    wr.sg_list = &sge;
+    wr.num_sge = 1;
+    wr.opcode = IBV_WR_RDMA_WRITE;
+/*sg_list中指定的本地内存缓冲区的内容正在发送和写入远程 QP 虚拟空间中的连续内存范围块。
+这并不一定意味着远程内存在物理上是连续的。远程 QP 中不会消耗任何接收请求。*/
+    wr.send_flags = IBV_SEND_SIGNALED;
+
+    if (length <= max_inline_data && max_inline_data) {
+      wr.send_flags |= IBV_SEND_INLINE;
+    }
+
+    wr.wr.rdma.remote_addr = to;
+    wr.wr.rdma.rkey = rkey;
+
+    return ibv_post_send(id->qp, &wr, &bad);
+  }
+
+  inline int write_with_imm_signaled(uint64_t wr_id, uint32_t imm_data,
+                                     char *from, uint32_t lkey, uint64_t to,
+                                     uint32_t rkey, uint32_t length) {
+    struct ibv_sge sge;
+
+    sge.addr = (uint64_t)(uintptr_t)from;//本地数据存储地址
+    sge.length = length;//数据长度
+    sge.lkey = lkey;//local key
+
+    struct ibv_send_wr wr, *bad;
+
+    wr.wr_id = wr_id;
+    wr.next = NULL;
+    wr.sg_list = &sge;
+    wr.num_sge = 1;
+    wr.opcode = IBV_WR_RDMA_WRITE_WITH_IMM;
+    /*
+IBV_WR_RDMA_WRITE_WITH_IMM - 与IBV_WR_RDMA_WRITE相同，
+但接收请求将从远程 QP 的接收队列的头部使用，即时数据将在消息中发送。此值将在为远程 QP 中消耗的接收请求生成的WC中可用
+*/
+    wr.imm_data = imm_data;
+
+    wr.send_flags = IBV_SEND_SIGNALED;
+
+    if (length <= max_inline_data && max_inline_data) {
+      wr.send_flags |= IBV_SEND_INLINE;
+    }
+
+    wr.wr.rdma.remote_addr = to;
+    wr.wr.rdma.rkey = rkey;
+
+    return ibv_post_send(id->qp, &wr, &bad);
+  }
+
+  inline int read(uint64_t from, uint32_t rkey, char *to, uint32_t lkey,
+                  uint32_t length) {
+    struct ibv_sge sge;
+
+    sge.addr = (uint64_t)(uintptr_t)to;  //本数据存储地址
+    sge.length = length; //应该读取数据长度
+    sge.lkey = lkey; //local key
+    struct ibv_send_wr wr, *bad;
+
+    wr.wr_id = 0;
+    wr.next = NULL;
+    wr.sg_list = &sge;
+    wr.num_sge = 1;
+    wr.opcode = IBV_WR_RDMA_READ;
+    /*正在从远程 QP 虚拟空间中的连续内存范围块读取数据，
+    并将其写入 sg_list 中指定的本地内存缓冲区。远程 QP 中不会消耗任何接收请求。*/
+    wr.send_flags = 0;
+
+    wr.wr.rdma.remote_addr = (uint64_t)(uintptr_t)from;
+    wr.wr.rdma.rkey = rkey;
+
+    return ibv_post_send(id->qp, &wr, &bad);
+  }
+
+  inline int read_signaled(uint64_t wr_id, uint64_t from, uint32_t rkey,
+                           char *to, uint32_t lkey, uint32_t length) {
+    struct ibv_sge sge;
+
+    sge.addr = (uint64_t)(uintptr_t)to;
+    sge.length = length;
+    sge.lkey = lkey;
+    struct ibv_send_wr wr, *bad;
+
+    wr.wr_id = wr_id;
+    wr.next = NULL;
+    wr.sg_list = &sge;
+    wr.num_sge = 1;
+    wr.opcode = IBV_WR_RDMA_READ;
+    wr.send_flags = IBV_SEND_SIGNALED;
+
+    wr.wr.rdma.remote_addr = (uint64_t)(uintptr_t)from;
+    wr.wr.rdma.rkey = rkey;
+
+    return ibv_post_send(id->qp, &wr, &bad);
+  }
+
+} 

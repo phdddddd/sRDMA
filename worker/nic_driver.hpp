@@ -78,7 +78,7 @@ class SecureWorker : public GenericWorker {
   };
 
  public:
-  SecureWorker(int id, IOWatcher* w, Connection* niccon, Connection* dmacon,
+     SecureWorker(int id, IOWatcher* w, Connection* niccon, Connection* dmacon,
                uint32_t packetsize)
       : id(id),
         local_io_watcher(w),
@@ -552,7 +552,7 @@ inline void SecureWorker::ProcessRecvRequest(struct ibv_wc* wc) {
         int ret;
         //question:为什么要发
         do {
-          ret = seccon->recvcon->send_imm_signaled(
+          ret = seccon->recv con->send_imm_signaled(
               (uint64_t)mr, IBV_WR_SECURE_SEND,
               ((char*)mr->addr) + payloadoffset, mr->lkey,
               wc->byte_len - payloadoffset);  
