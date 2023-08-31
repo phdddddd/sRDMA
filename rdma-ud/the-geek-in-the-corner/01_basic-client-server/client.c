@@ -139,6 +139,7 @@ void * poll_cq(void *ctx)
   }
 
   return NULL;
+  
 }
 
 void post_receives(struct connection *conn)

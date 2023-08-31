@@ -19,10 +19,10 @@
  * initialized using OpenSM.
  *
  * Receiver (-m is the multicast address, often the IP of the receiver):
- * ./mc -m 192.168.1.12
+ * ./mc -m 239.255.255.255
  *
  * Sender (-m is the multicast address, often the IP of the receiver):
- * ./mc -s -m 192.168.1.12
+ * ./mc -s -m 239.255.255.255
  *
  */
 #include <stdlib.h>
@@ -37,7 +37,7 @@
     fprintf(stderr, "%s returned %d errno %d\n", verb, ret, errno)
 /* Default parameter values */
 #define DEFAULT_PORT "51216"
-#define DEFAULT_MSG_COUNT 4
+#define DEFAULT_MSG_COUNT 5 
 #define DEFAULT_MSG_LENGTH 64
 /* Resources used in the example */
 struct context
@@ -328,7 +328,8 @@ int post_send(struct context *ctx)
     int ret;
     struct ibv_send_wr wr, *bad_wr;
     struct ibv_sge sge;
-    memset(ctx->buf, 0x12, ctx->msg_length); /* set the data to non-zero */
+    
+   // memset(ctx->buf, 0x12, ctx->msg_length); /* set the data to non-zero */
     sge.length = ctx->msg_length;
     sge.lkey = ctx->mr->lkey;
     sge.addr = (uint64_t)ctx->buf;
@@ -495,6 +496,7 @@ int main(int argc, char **argv)
     {
         for (i = 0; i < ctx.msg_count; i++)
         {
+            
             ret = rdma_post_recv(ctx.id, NULL, ctx.buf,
                                  ctx.msg_length + sizeof(struct ibv_grh),
                                  ctx.mr);
@@ -540,6 +542,7 @@ int main(int argc, char **argv)
     {
         if (ctx.sender)
         {
+            memset(ctx.buf, 0x30+i, ctx.msg_length);
             ret = post_send(&ctx);
             if (ret)
                 goto out;
